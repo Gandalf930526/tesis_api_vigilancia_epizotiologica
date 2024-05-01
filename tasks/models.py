@@ -2,7 +2,7 @@ from django.db import models
 
 # Create your models here.
 
-
+#test
 class Provincias(models.Model):
     provincia = models.CharField(max_length=250)
 
