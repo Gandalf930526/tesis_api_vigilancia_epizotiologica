@@ -78,8 +78,9 @@ class NotiDiaria(models.Model):
     fecha_cierre = models.DateField(auto_now=False, auto_now_add=False, null=True, blank=True)
     descripcion = models.TextField(null=True, blank=True)
     esta_activo = models.BooleanField()
-    latitud = models.FloatField()
-    longitud = models.FloatField()
+    latitud = models.DecimalField(max_digits=20, decimal_places=14)
+    longitud = models.DecimalField(max_digits=20, decimal_places=14)
+
 
 class Seguimientos(models.Model):
     provincia = models.ForeignKey("Provincias", on_delete=models.CASCADE)
