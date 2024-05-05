@@ -130,7 +130,6 @@ class Unidad(models.Model):
     nombre = models.CharField(max_length = 250)
     provincia_uni = models.ForeignKey("Provincias",on_delete=models.CASCADE,related_name ='provincia_uni')
     municipio_uni = models.ForeignKey("Municipios",on_delete=models.CASCADE,related_name ='municipio_uni')
-   
 
 class NotiDiaria(models.Model):
     no_orden = models.IntegerField()
@@ -189,5 +188,3 @@ class Traslado(models.Model):
     tramita = models.CharField(max_length=100)
     autoriza = models.CharField(max_length=100)
     nacion = models.CharField(max_length=100)
-
-
