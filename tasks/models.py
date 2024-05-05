@@ -64,75 +64,95 @@ class User(AbstractUser, PermissionsMixin, BaseModel):
         return self.email
 
     class Meta:
-        # Agregar o cambiar los related_name en las relaciones 'groups' y 'user_permissions'
-        # Esto evita los conflictos con los accesos inversos de los modelos User en auth y market
         db_table = 'User'
         swappable = 'AUTH_USER_MODEL'
         permissions = (('can_add_something', 'Can add something'),)  # ejemplo de permiso
         default_permissions = ()
 
 
-#test
-class Provincias(models.Model):
+class Provincias(BaseModel):
     provincia = models.CharField(max_length=250)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+
 
     def __str__(self):
         return self.provincia
     
-class Municipios(models.Model):
+class Municipios(BaseModel):
     provincia = models.ForeignKey('Provincias',on_delete=models.CASCADE)
     municipio = models.CharField(max_length=250)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+
     
     def __str__(self):
         return self.municipio
     
 
-class TipoSectores(models.Model):
-    tipoSector = models.CharField( max_length=20)
+class TipoSectores(BaseModel):
+    tipoSector = models.CharField( max_length=250)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+
     
 
     def __str__(self):
         return self.tipoSector
     
 
-class Sectores(models.Model):
+class Sectores(BaseModel):
     tipoSector = models.ForeignKey('TipoSectores',on_delete=models.CASCADE)
-    sector = models.CharField( max_length=20)
+    sector = models.CharField( max_length=250)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+
 
     def __str__(self):
         return self.sector
     
     
-class Especies(models.Model):
+class Especies(BaseModel):
     codigo = models.PositiveIntegerField()
-    especies = models.CharField(max_length=20, primary_key=True)
+    especies = models.CharField(max_length=250)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+
 
     def __str__(self):
         return self.especies
     
-class Enfermedades(models.Model):
+class Enfermedades(BaseModel):
     idenfermedad = models.PositiveIntegerField() 
-    enfermedad = models.CharField(max_length=80,primary_key=True) 
+    enfermedad = models.CharField(max_length=250) 
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+
 
     def __str__(self):
         return self.enfermedad
     
-class Propietarios(models.Model):
-    propietario = models.CharField( max_length=20, primary_key=True)
+class Propietarios(BaseModel):
+    propietario = models.CharField( max_length=20)
     sector = models.ForeignKey('Sectores',on_delete=models.CASCADE)
     municipio = models.ForeignKey('Municipios',on_delete=models.CASCADE)
     provincia = models.ForeignKey('Provincias',on_delete=models.CASCADE)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+
 
     def __str__(self):
         return self.propietario
     
-class Unidad(models.Model):
+class Unidad(BaseModel):
     nombre = models.CharField(max_length = 250)
     provincia_uni = models.ForeignKey("Provincias",on_delete=models.CASCADE,related_name ='provincia_uni')
     municipio_uni = models.ForeignKey("Municipios",on_delete=models.CASCADE,related_name ='municipio_uni')
-   
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
 
-class NotiDiaria(models.Model):
+
+class NotiDiaria(BaseModel):
     no_orden = models.IntegerField()
     municipio = models.ForeignKey("Municipios", on_delete=models.CASCADE, db_column='municipio')
     unidad = models.ForeignKey("Unidad", on_delete=models.CASCADE)
@@ -148,10 +168,13 @@ class NotiDiaria(models.Model):
     fecha_cierre = models.DateField(auto_now=False, auto_now_add=False, null=True, blank=True)
     descripcion = models.TextField(null=True, blank=True)
     esta_activo = models.BooleanField()
-    latitud = models.FloatField()
-    longitud = models.FloatField()
+    latitud = models.DecimalField(max_digits=20, decimal_places=14)
+    longitud = models.DecimalField(max_digits=20, decimal_places=14)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
 
-class Seguimientos(models.Model):
+
+class Seguimientos(BaseModel):
     provincia = models.ForeignKey("Provincias", on_delete=models.CASCADE)
     numOrden = models.IntegerField()
     enfermos = models.IntegerField()
@@ -159,9 +182,12 @@ class Seguimientos(models.Model):
     sacrificados = models.IntegerField()
     recuperados = models.IntegerField()
     observaciones = models.TextField()
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
 
-class LetalidadCanina(models.Model):
-    enfermedad = models.ForeignKey("Enfermedades", on_delete=models.CASCADE)
+
+class Letalidad(BaseModel):
+    enfermedad = models.ManyToManyField("Enfermedades")
     nuevosBrotes = models.IntegerField()
     nuevosEnfermos = models.IntegerField()
     muertos = models.IntegerField()
@@ -174,8 +200,11 @@ class LetalidadCanina(models.Model):
     municipio = models.ForeignKey("Municipios", on_delete=models.CASCADE)
     provincia = models.ForeignKey("Provincias", on_delete=models.CASCADE)
     especie = models.ForeignKey("Especies", on_delete=models.CASCADE)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
 
-class Traslado(models.Model):
+
+class Traslado(BaseModel):
     fecha = models.DateField(auto_now_add=True)
     provincia = models.ForeignKey("Provincias", on_delete=models.CASCADE)
     municipio = models.ForeignKey("Municipios", on_delete=models.CASCADE)
@@ -189,5 +218,8 @@ class Traslado(models.Model):
     tramita = models.CharField(max_length=100)
     autoriza = models.CharField(max_length=100)
     nacion = models.CharField(max_length=100)
+    createdAt = models.DateTimeField(auto_now_add=True)
+    updatedAt = models.DateTimeField(auto_now=True)
+
 
 
