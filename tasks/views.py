@@ -9,28 +9,6 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import generics
 
 # Create your views here.
-
-class UserRegistrationView(generics.CreateAPIView):
-    serializer_class = UserRegistrationSerializer
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-
-        response_data = {
-            'status': status.HTTP_201_CREATED,
-            'message': 'Registro exitoso',
-            'user': {
-                'id': user.id,
-                'email': user.email,
-                'username': user.username
-            }
-        }
-
-        return Response(response_data, status=status.HTTP_201_CREATED)
-
-
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
@@ -92,10 +70,20 @@ class SeguimientosView(viewsets.ModelViewSet):
     serializer_class = SeguimientosSerializer
     queryset = Seguimientos.objects.all()
 
-class LetalidadCaninaView(viewsets.ModelViewSet):
-    serializer_class = LetalidadCaninaSerializer
-    queryset = LetalidadCanina.objects.all()
+class LetalidadView(viewsets.ModelViewSet):
+    serializer_class = LetalidadSerializer
+    queryset = Letalidad.objects.all()
 
 class TrasladoView(viewsets.ModelViewSet):
     serializer_class = TrasladoSerializer
     queryset = Traslado.objects.all()
+
+
+class LetalidadCaninaPorMunicipio(APIView):
+    def get(self, request, municipio_id):
+        try:
+            letalidades = Letalidad.objects.filter(municipio_id=municipio_id)
+            serializer = LetalidadCaninaSerializer(letalidades, many=True)
+            return Response(serializer.data)
+        except Letalidad.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
