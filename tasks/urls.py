@@ -3,7 +3,7 @@ from rest_framework import routers
 from rest_framework.documentation import include_docs_urls
 from tasks import views
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from tasks.views import CustomTokenObtainPairView, LetalidadCaninaPorMunicipio
+from tasks.views import CustomTokenObtainPairView, LetalidadPorMunicipio
 
 
 routers = routers.DefaultRouter()
@@ -28,5 +28,5 @@ urlpatterns = [
     path("docs/", include_docs_urls(title = 'API VETERINARIA')),
     path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('letalidad_canina_por_municipio/<int:municipio_id>/', LetalidadCaninaPorMunicipio.as_view(), name='letalidad_canina_por_municipio'),
+    path('letalidad_por_municipio/', LetalidadPorMunicipio.as_view(), name='letalidad_por_municipio'),
 ]
