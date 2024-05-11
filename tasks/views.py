@@ -147,7 +147,6 @@ class LetalidadPorMunicipio(APIView):
 
             # Agrupación y suma de los nuevos parámetros
             for letalidad in serializer.data:
-                # print('letalidad',letalidad['enfermedad'])
                 key = (
                         letalidad['enfermedad']['id'], 
                         letalidad['especie']['id'], 
@@ -179,11 +178,6 @@ class LetalidadPorMunicipio(APIView):
                 resultados_agrupados[key]['tratados'] += letalidad['tratados']
                 resultados_agrupados[key]['vacunados'] += letalidad['vacunados']
         
-            # Cálculo de la letalidad y agregación a la data
-            for resultado in resultados_agrupados.values():
-                total_animales_enfermos = resultado['nuevosEnfermos'] + resultado['tratados']
-                resultado['Letalidad'] = (resultado['muertos'] / total_animales_enfermos) if total_animales_enfermos != 0 else 0
-
             # Convertir el diccionario a una lista para la serialización
             resultados_agrupados_list = list(resultados_agrupados.values())
 
