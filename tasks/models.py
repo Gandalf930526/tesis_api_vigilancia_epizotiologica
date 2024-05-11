@@ -187,7 +187,7 @@ class Seguimientos(BaseModel):
 
 
 class Letalidad(BaseModel):
-    enfermedad = models.ManyToManyField("Enfermedades")
+    enfermedad = models.ForeignKey("Enfermedades", on_delete=models.CASCADE)
     nuevosBrotes = models.IntegerField()
     nuevosEnfermos = models.IntegerField()
     muertos = models.IntegerField()

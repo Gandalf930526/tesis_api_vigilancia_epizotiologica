@@ -125,7 +125,7 @@ class SeguimientosSerializer(serializers.ModelSerializer):
 
 
 class LetalidadSerializer(serializers.ModelSerializer):
-    enfermedad = EnfermedadesSerializer(many=True)
+    enfermedad = serializers.PrimaryKeyRelatedField(queryset=Enfermedades.objects.all())
     sector = serializers.PrimaryKeyRelatedField(queryset=Sectores.objects.all())
     municipio = serializers.PrimaryKeyRelatedField(queryset=Municipios.objects.all())
     provincia = serializers.PrimaryKeyRelatedField(queryset=Provincias.objects.all())
@@ -135,40 +135,33 @@ class LetalidadSerializer(serializers.ModelSerializer):
         model = Letalidad
         fields = '__all__'
 
-    def create(self, validated_data):
-        enfermedades_data = validated_data.pop('enfermedad', None)
-        letalidad = Letalidad.objects.create(**validated_data)
-        if enfermedades_data:
-            for enfermedad_data in enfermedades_data:
-                enfermedad_obj, _ = Enfermedades.objects.get_or_create(**enfermedad_data)
-                letalidad.enfermedad.add(enfermedad_obj)
-        return letalidad
-
-    def update(self, instance, validated_data):
-        # Actualizamos los campos de la instancia
-        instance.nuevosBrotes = validated_data.get('nuevosBrotes', instance.nuevosBrotes)
-        instance.nuevosEnfermos = validated_data.get('nuevosEnfermos', instance.nuevosEnfermos)
-        instance.muertos = validated_data.get('muertos', instance.muertos)
-        instance.sacrificados = validated_data.get('sacrificados', instance.sacrificados)
-        instance.tratados = validated_data.get('tratados', instance.tratados)
-        instance.vacunados = validated_data.get('vacunados', instance.vacunados)
-        instance.centroInformante = validated_data.get('centroInformante', instance.centroInformante)
-        instance.fecha = validated_data.get('fecha', instance.fecha)
-        instance.sector = validated_data.get('sector', instance.sector)
-        instance.municipio = validated_data.get('municipio', instance.municipio)
-        instance.provincia = validated_data.get('provincia', instance.provincia)
-        instance.especie = validated_data.get('especie', instance.especie)
-
-        # Actualizamos las enfermedades asociadas
-        if 'enfermedad' in validated_data:
-            instance.enfermedad.clear()  # Limpiamos las enfermedades actuales
-            enfermedades_data = validated_data.pop('enfermedad')
-            for enfermedad_data in enfermedades_data:
-                enfermedad_obj, _ = Enfermedades.objects.get_or_create(**enfermedad_data)
-                instance.enfermedad.add(enfermedad_obj)
-
-        instance.save()
-        return instance
+    def to_internal_value(self, data):
+        municipio_data = data.get('municipio')
+        sector_data = data.get('sector')
+        enfermedad_data = data.get('enfermedad')
+        provincia_data = data.get('provincia')
+        especie_data = data.get('especie')
+        if isinstance(municipio_data, dict):
+            municipio_id = municipio_data.get('id')
+            municipio = Municipios.objects.get(pk=municipio_id)
+            data['municipio'] = municipio.id
+        if isinstance(sector_data, dict):
+            sector_id = sector_data.get('id')
+            sector = Sectores.objects.get(pk=sector_id)
+            data['sector'] = sector.id
+        if isinstance(enfermedad_data, dict):
+            enfermedad_id = enfermedad_data.get('id')
+            enfermedad = Enfermedades.objects.get(pk=enfermedad_id)
+            data['enfermedad'] = enfermedad.id
+        if isinstance(provincia_data, dict):
+            provincia_id = provincia_data.get('id')
+            provincia = Provincias.objects.get(pk=provincia_id)
+            data['provincia'] = provincia.id
+        if isinstance(especie_data, dict):
+            especie_id = especie_data.get('id')
+            especie = Especies.objects.get(pk=especie_id)
+            data['especie'] = especie.id    
+        return super().to_internal_value(data)
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -176,7 +169,7 @@ class LetalidadSerializer(serializers.ModelSerializer):
         representation['sector'] = SectoresSerializer(instance.sector).data
         representation['provincia'] = ProvinciasSerializer(instance.provincia).data
         representation['especie'] = EspeciesSerializer(instance.especie).data
-        representation['enfermedad'] = EnfermedadesSerializer(instance.enfermedad.all(), many=True).data
+        representation['enfermedad'] = EnfermedadesSerializer(instance.enfermedad).data
         return representation
     
     
