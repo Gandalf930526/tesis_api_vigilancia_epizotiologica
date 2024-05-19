@@ -13,6 +13,8 @@ from django.db.models import Sum, F, ExpressionWrapper, fields
 from django.shortcuts import get_object_or_404
 from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist
+import numpy as np 
+from scipy.stats import poisson
 
 # Create your views here.
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -70,6 +72,8 @@ class TipoSectoresView(viewsets.ModelViewSet):
 class EspeciesView(viewsets.ModelViewSet):
     serializer_class = EspeciesSerializer
     queryset = Especies.objects.all()
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
 class EnfermedadesView(viewsets.ModelViewSet):
     serializer_class = EnfermedadesSerializer
@@ -98,8 +102,8 @@ class SeguimientosView(viewsets.ModelViewSet):
 class LetalidadView(viewsets.ModelViewSet):
     serializer_class = LetalidadSerializer
     queryset = Letalidad.objects.all()
-    # authentication_classes = [JWTAuthentication]
-    # permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
 class TrasladoView(viewsets.ModelViewSet):
     serializer_class = TrasladoSerializer
@@ -108,20 +112,9 @@ class TrasladoView(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
 
-# class LetalidadCaninaPorMunicipio(APIView):
-#     authentication_classes = [JWTAuthentication]
-#     permission_classes = [IsAuthenticated]
-
-#     def get(self, request, municipio_id):
-#         try:
-#             letalidades = Letalidad.objects.filter(municipio_id=municipio_id)
-#             serializer = LetalidadSerializer(letalidades, many=True)
-#             return Response(serializer.data)
-#         except Letalidad.DoesNotExist:
-#             return Response(status=status.HTTP_404_NOT_FOUND)
-
-
 class LetalidadPorMunicipio(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
     
     def get(self, request):
         try:
@@ -137,7 +130,7 @@ class LetalidadPorMunicipio(APIView):
             letalidades = Letalidad.objects.filter(municipio_id=municipio_id, fecha__range=[fecha_inicio, fecha_fin], especie_id=especie_id)
 
             if not letalidades.exists():
-                return Response({"status": "error", "message": "No existe letalidad para esos parámetros"}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"status": "error", "message": "No existe letalidad para esos parámetros"}, status=status.HTTP_204_NO_CONTENT)
             
             # Serializar los objetos de Letalidad
             serializer = LetalidadSerializer(letalidades, many=True)
@@ -203,4 +196,71 @@ class LetalidadPorMunicipio(APIView):
         
         except Exception as e:
             # Manejo de errores generales
+            return Response({"status": "error", "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PoissonMap(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @staticmethod
+    def calcular_probabilidad_poisson(matriz, tasa_media):
+        # Inicializar una matriz para almacenar las probabilidades calculadas
+        probabilidades_poisson = np.zeros_like(matriz, dtype=float)
+
+        # Calcular la probabilidad de Poisson para cada elemento de la matriz
+        for i in range(matriz.shape[0]):
+            for j in range(matriz.shape[1]):
+                num_eventos = matriz[i][j]
+                probabilidades_poisson[i][j] = poisson.pmf(num_eventos, tasa_media)
+
+        return probabilidades_poisson
+
+    def get(self, request):
+        try:
+            municipio_id = request.query_params.get('municipio_id')
+            fecha_inicio = request.query_params.get('fecha_inicio')
+            fecha_fin = request.query_params.get('fecha_fin')
+            activo = request.query_params.get('activo')
+
+            if not (fecha_inicio and fecha_fin and activo):
+                return Response({"status": "error", "message": "Los parámetros fecha_inicio, fecha_fin, activo, municipio_id son requeridos."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Obtener instancias de los objetos de NotiDiaria
+            notiDiaria = NotiDiaria.objects.filter(fecha_confirmacion__range=[fecha_inicio, fecha_fin], esta_activo=activo, municipio=municipio_id)
+            print(notiDiaria);
+            if not notiDiaria.exists():
+                return Response({"status": "error", "message": "No hay datos para esos parámetros"}, status=status.HTTP_204_NO_CONTENT)
+
+            # Calcular la tasa media
+            muertos_total = sum(noti.muertos for noti in notiDiaria)
+            num_notiDiaria = notiDiaria.count()
+            tasa_media = muertos_total / num_notiDiaria
+
+            # Crear matriz de muertos
+            matriz_muertos = np.array([[noti.muertos] for noti in notiDiaria])
+
+            # Calcular probabilidades de Poisson
+            probabilidades_poisson = self.calcular_probabilidad_poisson(matriz_muertos, tasa_media)
+
+            # Calcular cuartiles
+            q1 = np.percentile(probabilidades_poisson, 25)
+            q2 = np.percentile(probabilidades_poisson, 50)
+            q3 = np.percentile(probabilidades_poisson, 75)
+
+            # Serializar los datos
+            serializer = NotiDiariaSerializer(notiDiaria, many=True)
+
+            # Agregar resultados de cálculos a cada instancia serializada
+            serialized_data = serializer.data
+            for idx, instance_data in enumerate(serialized_data):
+                instance_data["probabilidad_poisson"] = probabilidades_poisson[idx][0]
+                instance_data["q1"] = q1
+                instance_data["q2"] = q2
+                instance_data["q3"] = q3
+
+            # Mensaje de éxito con los datos calculados
+            return Response({"status": "success", "message": "La petición fue exitosa", "data": serialized_data})
+
+        except Exception as e:
             return Response({"status": "error", "message": str(e)}, status=status.HTTP_400_BAD_REQUEST)
