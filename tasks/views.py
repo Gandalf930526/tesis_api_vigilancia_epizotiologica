@@ -223,26 +223,26 @@ class PoissonMap(APIView):
             fecha_fin = request.query_params.get('fecha_fin')
             activo = request.query_params.get('activo')
 
-            if not (fecha_inicio and fecha_fin and activo):
+            if not (fecha_inicio and fecha_fin and activo and municipio_id):
                 return Response({"status": "error", "message": "Los parámetros fecha_inicio, fecha_fin, activo, municipio_id son requeridos."}, status=status.HTTP_400_BAD_REQUEST)
 
             # Obtener instancias de los objetos de NotiDiaria
             notiDiaria = NotiDiaria.objects.filter(fecha_confirmacion__range=[fecha_inicio, fecha_fin], esta_activo=activo, municipio=municipio_id)
-            print(notiDiaria);
+        
             if not notiDiaria.exists():
                 return Response({"status": "error", "message": "No hay datos para esos parámetros"}, status=status.HTTP_204_NO_CONTENT)
 
             # Calcular la tasa media
-            muertos_total = sum(noti.muertos for noti in notiDiaria)
+            muertos_total = sum(noti.muertos if noti.muertos is not None else 0 for noti in notiDiaria)
+        
             num_notiDiaria = notiDiaria.count()
             tasa_media = muertos_total / num_notiDiaria
-
             # Crear matriz de muertos
-            matriz_muertos = np.array([[noti.muertos] for noti in notiDiaria])
-
+            matriz_muertos = np.array([[noti.muertos if noti.muertos is not None else 0] for noti in notiDiaria])
+        
             # Calcular probabilidades de Poisson
             probabilidades_poisson = self.calcular_probabilidad_poisson(matriz_muertos, tasa_media)
-
+           
             # Calcular cuartiles
             q1 = np.percentile(probabilidades_poisson, 25)
             q2 = np.percentile(probabilidades_poisson, 50)
