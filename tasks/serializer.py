@@ -24,6 +24,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return data
     
 class ProvinciasSerializer(serializers.ModelSerializer):
+    
     class Meta:
         model = Provincias
         fields = '__all__'
@@ -51,38 +52,110 @@ class MunicipiosSerializer(serializers.ModelSerializer):
 
 
 class TipoSectoresSerializer(serializers.ModelSerializer):
+    
     class Meta:
         model = TipoSectores
         fields = '__all__'
 
 
 class SectoresSerializer(serializers.ModelSerializer):
-
+    tipoSector = serializers.PrimaryKeyRelatedField(queryset=TipoSectores.objects.all())
+    
     class Meta:
         model = Sectores
         fields = '__all__'
         
+    def to_internal_value(self, data):
+        tipoSector_data = data.get('tipoSector')
+        if isinstance(tipoSector_data, dict):
+            tipoSector_id = tipoSector_data.get('id')
+            tipoSector = TipoSectores.objects.get(pk=tipoSector_id)
+            data['tipoSector'] = tipoSector.id
+        return super().to_internal_value(data)
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['tipoSector'] = TipoSectoresSerializer(instance.tipoSector).data
+        return ret       
+    
+        
 
 class PropietariosSerializer(serializers.ModelSerializer):
+    sector = serializers.PrimaryKeyRelatedField(queryset=Sectores.objects.all())
+    municipio = serializers.PrimaryKeyRelatedField(queryset=Municipios.objects.all())
+    provincia = serializers.PrimaryKeyRelatedField(queryset=Provincias.objects.all())
+    
     class Meta:
         model = Propietarios
         fields = '__all__'
+    
+    def to_internal_value(self, data):
+        sector_data = data.get('sector')
+        municipio_data = data.get('municipio') 
+        provincia_data = data.get('provincia')
+        if isinstance(sector_data, dict):
+            sector_id = sector_data.get('id')
+            sector = Sectores.objects.get(pk=sector_id)
+            data['sector'] = sector.id
+        
+        if isinstance(municipio_data, dict):
+            municipio_id = municipio_data.get('id')
+            municipio = Municipios.objects.get(pk=municipio_id)
+            data['municipio'] = municipio.id            
+        
+        if isinstance(provincia_data, dict):
+            provincia_id = provincia_data.get('id')
+            provincia = Provincias.objects.get(pk=provincia_id)
+            data['provincia'] = provincia.id
+        return super().to_internal_value(data)
 
-
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['sector'] = SectoresSerializer(instance.sector).data
+        ret['municipio'] = MunicipiosSerializer(instance.municipio).data       
+        ret['provincia'] = ProvinciasSerializer(instance.provincia).data
+        return ret    
+  
 class EspeciesSerializer(serializers.ModelSerializer):
+    
     class Meta:
         model = Especies
         fields = '__all__'
 
 class EnfermedadesSerializer(serializers.ModelSerializer):
+    
     class Meta:
         model = Enfermedades
         fields = '__all__'
 
 class UnidadSerializer(serializers.ModelSerializer):
+    municipio_uni = serializers.PrimaryKeyRelatedField(queryset=Municipios.objects.all())
+    provincia_uni = serializers.PrimaryKeyRelatedField(queryset=Provincias.objects.all())
+        
     class Meta:
         model = Unidad
         fields = '__all__'
+        
+    def to_internal_value(self, data):
+        municipio_data = data.get('municipio_uni') 
+        provincia_data = data.get('provincia_uni')
+        
+        if isinstance(municipio_data, dict):
+            municipio_id = municipio_data.get('id')
+            municipio = Municipios.objects.get(pk=municipio_id)
+            data['municipio_uni'] = municipio.id            
+        
+        if isinstance(provincia_data, dict):
+            provincia_id = provincia_data.get('id')
+            provincia = Provincias.objects.get(pk=provincia_id)
+            data['provincia_uni'] = provincia.id
+        return super().to_internal_value(data)
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['municipio_uni'] = MunicipiosSerializer(instance.municipio_uni).data       
+        ret['provincia_uni'] = ProvinciasSerializer(instance.provincia_uni).data
+        return ret      
 
 class NotiDiariaSerializer(serializers.ModelSerializer):
     municipio = serializers.PrimaryKeyRelatedField(queryset=Municipios.objects.all())
@@ -119,9 +192,24 @@ class NotiDiariaSerializer(serializers.ModelSerializer):
         return ret
 
 class SeguimientosSerializer(serializers.ModelSerializer):
+    provincia = serializers.PrimaryKeyRelatedField(queryset=Provincias.objects.all())
+    
     class Meta:
         model = Seguimientos
         fields = '__all__'
+        
+    def to_internal_value(self, data):
+        provincia_data = data.get('provincia')
+        if isinstance(provincia_data, dict):
+            provincia_id = provincia_data.get('id')
+            provincia = Provincias.objects.get(pk=provincia_id)
+            data['provincia'] = provincia.id
+        return super().to_internal_value(data)
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['provincia'] = ProvinciasSerializer(instance.provincia).data
+        return ret  
 
 
 class LetalidadSerializer(serializers.ModelSerializer):
@@ -174,6 +262,36 @@ class LetalidadSerializer(serializers.ModelSerializer):
     
     
 class TrasladoSerializer(serializers.ModelSerializer):
+    provincia = serializers.PrimaryKeyRelatedField(queryset=Provincias.objects.all())
+    municipio = serializers.PrimaryKeyRelatedField(queryset=Municipios.objects.all())
+    propietario = serializers.PrimaryKeyRelatedField(queryset=Propietarios.objects.all())
+    
     class Meta:
         model = Traslado
         fields = '__all__'
+    
+    def to_internal_value(self, data):
+        provincia_data = data.get('provincia')
+        municipio_data = data.get('municipio')
+        propietario_data = data.get('propietario')
+        if isinstance(provincia_data, dict):
+            provincia_id = provincia_data.get('id')
+            provincia = Provincias.objects.get(pk=provincia_id)
+            data['provincia'] = provincia.id
+        if isinstance(municipio_data, dict):
+            municipio_id = municipio_data.get('id')
+            municipio = Municipios.objects.get(pk=municipio_id)
+            data['municipio'] = municipio.id     
+        if isinstance(propietario_data, dict):
+            propietario_id = propietario_data.get('id')
+            propietario = Propietarios.objects.get(pk=propietario_id)
+            data['propietario'] = propietario.id
+        return super().to_internal_value(data)
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['provincia'] = ProvinciasSerializer(instance.provincia).data
+        ret['municipio'] = MunicipiosSerializer(instance.municipio).data
+        ret['propietario'] = PropietariosSerializer(instance.propietario).data
+        return ret    
+    
